@@ -38,7 +38,7 @@ public class LocationService {
 
     private static final Pattern ZIP_CODE_PATTERN = Pattern.compile("^\\d{5}(?:-\\d{4})?$");
     private static final String AWS_LOCATION_API_URL_TEMPLATE = 
-            "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text";
+            "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text?key={apiKey}";
 
     private final AWSLocationProperties awsLocationProperties;
     private final RestTemplate restTemplate;
@@ -108,14 +108,17 @@ public class LocationService {
         }
 
         try {
+            // Construct URL with API key in query string for API key auth
             String url = AWS_LOCATION_API_URL_TEMPLATE
                     .replace("{region}", awsLocationProperties.getRegion())
-                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName());
+                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName())
+                    .replace("{apiKey}", awsLocationProperties.getApiKey());
 
-            // Set up headers with API Key - AWS Location Service uses X-Api-Key header for API key auth
+            log.debug("Using URL: {}", url);
+            
+            // Set up headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", awsLocationProperties.getApiKey());
             
             // Create the request payload
             Map<String, Object> requestBody = new HashMap<>();
@@ -126,7 +129,7 @@ public class LocationService {
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             
-            log.debug("Sending request to AWS Location Service with ZIP: {}, URL: {}", zipCode, url);
+            log.debug("Sending request to AWS Location Service with ZIP: {}", zipCode);
             log.debug("Request body: {}", objectMapper.writeValueAsString(requestBody));
             
             ResponseEntity<String> response = restTemplate.exchange(
@@ -138,7 +141,7 @@ public class LocationService {
             
             log.debug("Response status code: {}", response.getStatusCode());
             log.debug("Response body: {}", response.getBody());
-            
+        
             if (response.getStatusCode() == HttpStatus.OK) {
                 log.debug("Received successful response from AWS Location Service");
                 return parseResponse(response.getBody());
