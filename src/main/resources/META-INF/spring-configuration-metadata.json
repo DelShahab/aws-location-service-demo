@@ -25,6 +25,12 @@
       "sourceType": "com.example.awslocationservice.config.AWSCredentialsProperties"
     },
     {
+      "name": "aws.credentials.session-token",
+      "type": "java.lang.String",
+      "description": "AWS session token for temporary credentials, required when using credentials from AWS STS, IAM roles, or the AWS Management Console.",
+      "sourceType": "com.example.awslocationservice.config.AWSCredentialsProperties"
+    },
+    {
       "name": "aws.location.place-index-name",
       "type": "java.lang.String",
       "description": "The name of the AWS Location Service place index to use for address lookups.",

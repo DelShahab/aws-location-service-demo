@@ -33,4 +33,13 @@ public class AWSCredentialsProperties {
      */
     @NotBlank
     private String secretKey;
+    
+    /**
+     * The AWS session token for temporary credentials.
+     * <p>
+     * This is required when using temporary credentials from AWS STS,
+     * IAM roles, or from the AWS Management Console.
+     * </p>
+     */
+    private String sessionToken;
 }
