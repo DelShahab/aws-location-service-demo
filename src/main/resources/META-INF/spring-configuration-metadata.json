@@ -47,12 +47,6 @@
       "type": "java.lang.String",
       "description": "The data provider for the AWS Location Service (e.g., 'Here', 'Esri').",
       "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
-    },
-    {
-      "name": "aws.location.api-key",
-      "type": "java.lang.String",
-      "description": "Optional API key for AWS Location Service to provide additional request authentication alongside AWS credentials.",
-      "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
     }
   ],
   "hints": []

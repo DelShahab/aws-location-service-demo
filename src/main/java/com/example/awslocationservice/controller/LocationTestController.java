@@ -1,6 +1,6 @@
 package com.example.awslocationservice.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,8 +24,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LocationTestController {
 
-    @Autowired
-    private LocationService locationService;
+    private final LocationService locationService;
+
+    /**
+     * Constructor injection of dependencies.
+     *
+     * @param locationService The service for address lookups
+     */
+    public LocationTestController(LocationService locationService) {
+        this.locationService = locationService;
+    }
 
     /**
      * Test endpoint to lookup an address by ZIP code.

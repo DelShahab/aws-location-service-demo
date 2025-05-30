@@ -47,14 +47,7 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
                 .withText("90210") // Famous Beverly Hills ZIP code
                 .withMaxResults(1); // Only need one result for testing
                 
-            // Add API key to the request headers if provided for additional security
-            String apiKey = awsLocationProperties.getApiKey();
-            if (apiKey != null && !apiKey.trim().isEmpty()) {
-                request.putCustomRequestHeader("X-Api-Key", apiKey);
-                log.info("Using hybrid authentication (AWS credentials + API key)");
-            } else {
-                log.info("Using AWS credentials authentication only");
-            }
+            log.info("Using AWS credentials authentication with session token if provided");
             
             log.info("Testing connection to AWS Location Service with place index: {}", 
                     awsLocationProperties.getPlaceIndexName());
@@ -85,14 +78,8 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
                 awsLocationProperties.getPlaceIndexName());
         log.error("3. Ensure the AWS credentials have permissions to access the place index");
         
-        // Check if API key is configured
-        String apiKey = awsLocationProperties.getApiKey();
-        if (apiKey != null && !apiKey.trim().isEmpty()) {
-            log.error("4. Verify that your aws.location.api-key is valid");
-        }
-        
-        log.error("5. Confirm that aws.location.region='{}' is correct", 
+        log.error("4. Confirm that aws.location.region='{}' is correct", 
                 awsLocationProperties.getRegion());
-        log.error("6. The application will continue to run, but address lookup will not work until this is fixed");
+        log.error("5. The application will continue to run, but address lookup will not work until this is fixed");
     }
 }

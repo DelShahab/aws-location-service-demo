@@ -97,12 +97,7 @@ public class LocationService {
                 .withText(zipCode)
                 .withMaxResults(5);
             
-            // Add API key to the request headers if provided
-            String apiKey = awsLocationProperties.getApiKey();
-            if (apiKey != null && !apiKey.trim().isEmpty()) {
-                request.putCustomRequestHeader("X-Api-Key", apiKey);
-                log.debug("Added X-Api-Key header for additional authentication");
-            }
+
             
             log.debug("Sending request to AWS Location Service: {}", request);
             

@@ -42,9 +42,5 @@ public class AWSLocationProperties {
     @NotBlank
     private String dataProvider;
     
-    /**
-     * The API key for AWS Location Service for additional request authentication.
-     * This is used alongside AWS credentials for enhanced security.
-     */
-    private String apiKey;
+
 }
