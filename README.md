@@ -2,7 +2,7 @@
 
 ![AWS Location Service](https://d2908q01vomqb2.cloudfront.net/cb4e5208b4cd87268b208e49452ed6e89a68e0b8/2021/12/14/Amazon-Location-Service-architecture.png)
 
-A comprehensive Spring Boot application with a Vaadin UI for validating US ZIP codes and retrieving address information using Amazon Location Service. This project demonstrates how to integrate Amazon Location Service with a modern Java web application.
+A comprehensive Spring Boot application with a Vaadin UI for validating US ZIP codes and retrieving address information using Amazon Location Service. This project demonstrates how to integrate Amazon Location Service with AWS SDK and credentials authentication in a modern Java web application.
 
 ## Table of Contents
 - [Features](#features)
@@ -24,10 +24,10 @@ A comprehensive Spring Boot application with a Vaadin UI for validating US ZIP c
 ## Features
 
 - Validate US ZIP code format using regex pattern matching
-- Lookup address information using Amazon Location Service with HERE provider
+- Lookup address information using AWS Location Service SDK with HERE provider
 - Display formatted address results with complete address components
-- Interactive map preview using AWS Location Service Maps API
 - Support for keyboard shortcut (ENTER key) to trigger validation
+- AWS credentials authentication using access key and secret key
 - Comprehensive error handling and logging
 - Developer-friendly codebase with clean separation of concerns
 
@@ -47,8 +47,12 @@ The application follows a standard Spring Boot architecture with layered compone
 └───────────┬─────────────┘
             ↓
 ┌─────────────────────────┐
+│     AWS SDK Client      │
+│   (AmazonLocation)      │
+└───────────┬─────────────┘
+            ↓
+┌─────────────────────────┐
 │  AWS Location Service   │
-│     REST API            │
 └─────────────────────────┘
 ```
 
@@ -58,8 +62,7 @@ The application follows a standard Spring Boot architecture with layered compone
 - Maven 3.6+
 - AWS Account with Amazon Location Service configured
 - Place Index named "ZipLookupIndex" in the us-west-2 region
-- Map resource named "ExampleMap" (or any custom name)
-- API Key for Amazon Location Service
+- AWS access key and secret key with permissions for AWS Location Service
 
 ## AWS Configuration
 
@@ -75,23 +78,13 @@ The application follows a standard Spring Boot architecture with layered compone
    - Data storage option: The Places service doesn't store your results
 6. Click "Create place index"
 
-### Setting up Map Resource
+### Setting up AWS Credentials
 
-1. In the Amazon Location Service dashboard, select "Maps" from the sidebar
-2. Click "Create map resource"
-3. Set the following properties:
-   - Name: ExampleMap
-   - Style: Any style of your choice
-   - Map use case: Select appropriate options based on your needs
-4. Click "Create map resource"
-
-### Creating API Key
-
-1. In the Amazon Location Service dashboard, select "API keys" from the sidebar
-2. Click "Create API key"
-3. Set a name and configure key restrictions as needed
-4. Click "Create API key"
-5. Copy the generated API key for use in the application
+1. In the AWS Management Console, navigate to IAM (Identity and Access Management)
+2. Create a user or use an existing user with programmatic access
+3. Attach the `AmazonLocationFullAccess` policy to the user
+4. Generate or retrieve the access key and secret key
+5. Copy these credentials for use in the application configuration
 
 ## Installation
 
@@ -106,19 +99,39 @@ mvn install
 
 ## Configuration
 
-Before running the application, update the `src/main/resources/application.properties` file with your AWS Location Service credentials:
+To configure the application, update the properties files with your AWS credentials and Location Service settings:
+
+### For Development
+
+Edit `src/main/resources/application-dev.properties`:
 
 ```properties
+# AWS credentials for development environment
+aws.credentials.access-key=your-access-key-here
+aws.credentials.secret-key=your-secret-key-here
+
 # AWS Location Service configuration
-aws.location.api-key=your-api-key-here
 aws.location.place-index-name=ZipLookupIndex
 aws.location.region=us-west-2
-aws.location.map-name=ExampleMap
+aws.location.data-provider=Here
 ```
 
-For different environments, you can use Spring profiles by creating profile-specific properties files:
-- `application-dev.properties`
-- `application-prod.properties`
+### For Production
+
+Edit `src/main/resources/application-prod.properties`:
+
+```properties
+# AWS credentials for production environment
+aws.credentials.access-key=${AWS_ACCESS_KEY_ID}
+aws.credentials.secret-key=${AWS_SECRET_ACCESS_KEY}
+
+# AWS Location Service configuration
+aws.location.place-index-name=${AWS_LOCATION_PLACE_INDEX_NAME:ZipLookupIndex}
+aws.location.region=${AWS_LOCATION_REGION:us-west-2}
+aws.location.data-provider=${AWS_LOCATION_DATA_PROVIDER:Here}
+```
+
+For production, use environment variables to set sensitive information like AWS credentials.
 
 ## Build and Run
 
@@ -139,11 +152,11 @@ The application will start on http://localhost:8080
 
 ## Usage
 
-1. Enter a valid US ZIP code in the input field (e.g., "92021" or "92021-1234")
-2. Click the "Lookup Address" button or press ENTER
-3. The application will validate the ZIP code format
+1. Enter a ZIP code in the input field
+2. Click the "Validate" button or press ENTER
+3. The application will first validate the ZIP code format
 4. If valid, it will query Amazon Location Service for address information
-5. The address information will be displayed along with a map showing the location
+5. The address information will be displayed with all available address components
 
 ## API Reference
 

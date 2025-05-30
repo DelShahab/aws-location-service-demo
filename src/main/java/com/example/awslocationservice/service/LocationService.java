@@ -18,12 +18,12 @@ import java.util.regex.Pattern;
  * Service for interacting with AWS Location Service to validate ZIP codes and retrieve address information.
  * <p>
  * This service provides methods to validate US ZIP code formats and to look up addresses using
- * the AWS Location Service SDK with the HERE provider. It implements API key authentication
- * and handles all necessary communication and response parsing.
+ * the AWS Location Service SDK with the HERE provider. It implements AWS credentials authentication
+ * (access key and secret key) and handles all necessary communication and response parsing.
  * </p>
  * 
  * @author DelShahab
- * @version 1.0
+ * @version 1.1
  * @since 2025-05-30
  */
 @Service

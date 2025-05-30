@@ -23,11 +23,12 @@ import org.slf4j.LoggerFactory;
  * Main UI view for the AWS Location Service Address Lookup application.
  * <p>
  * This Vaadin view provides an interface for users to enter ZIP codes,
- * validate them, and view the corresponding address information with a map.
+ * validate them, and view the corresponding address information retrieved
+ * from AWS Location Service using the AWS SDK.
  * </p>
  *
  * @author DelShahab
- * @version 1.0
+ * @version 1.1
  * @since 2025-05-30
  */
 @Route("")
