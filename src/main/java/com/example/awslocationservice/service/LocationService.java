@@ -38,7 +38,7 @@ public class LocationService {
 
     private static final Pattern ZIP_CODE_PATTERN = Pattern.compile("^\\d{5}(?:-\\d{4})?$");
     private static final String AWS_LOCATION_API_URL_TEMPLATE = 
-            "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text?key={apiKey}";
+            "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text";
 
     private final AWSLocationProperties awsLocationProperties;
     private final RestTemplate restTemplate;
@@ -108,24 +108,24 @@ public class LocationService {
         }
 
         try {
-            // Construct URL with API key in query string for API key auth
+            // Construct URL without API key in query string
             String url = AWS_LOCATION_API_URL_TEMPLATE
                     .replace("{region}", awsLocationProperties.getRegion())
-                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName())
-                    .replace("{apiKey}", awsLocationProperties.getApiKey());
+                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName());
 
             log.debug("Using URL: {}", url);
             
-            // Set up headers
+            // Set up headers with API Key using the standard header for AWS Location Service
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-Api-Key", awsLocationProperties.getApiKey());
             
-            // Create the request payload
+            // Create the simplest possible request payload
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("Text", zipCode);
-            requestBody.put("MaxResults", 10);
-            requestBody.put("Language", "en");
-            // Removed FilterBBox as it's not needed for ZIP code search
+            requestBody.put("MaxResults", 5);
+            
+            // Simplifying the request by removing all optional parameters
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             
