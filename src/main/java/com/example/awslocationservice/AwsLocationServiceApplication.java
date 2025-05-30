@@ -8,20 +8,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.awslocationservice.config.AWSLocationProperties;
+import com.example.awslocationservice.config.AWSCredentialsProperties;
 
 /**
  * Main Spring Boot application class for the AWS Location Service demo.
  * <p>
  * This application demonstrates integration with AWS Location Service for
- * address validation and map rendering using a Vaadin UI.
+ * address validation using a Vaadin UI. It uses hybrid authentication with
+ * both AWS credentials and API key for enhanced security.
  * </p>
  *
  * @author DelShahab
- * @version 1.0
+ * @version 1.1
  * @since 2025-05-30
  */
 @SpringBootApplication
-@EnableConfigurationProperties(AWSLocationProperties.class)
+@EnableConfigurationProperties({AWSLocationProperties.class, AWSCredentialsProperties.class})
 public class AwsLocationServiceApplication {
 
     /**
