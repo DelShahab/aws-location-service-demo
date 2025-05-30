@@ -120,12 +120,13 @@ public class LocationService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Api-Key", awsLocationProperties.getApiKey());
             
-            // Create the simplest possible request payload
+            // Create request payload with required parameters
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("Text", zipCode);
             requestBody.put("MaxResults", 5);
+            requestBody.put("DataSource", awsLocationProperties.getDataProvider());
             
-            // Simplifying the request by removing all optional parameters
+            // Using DataSource parameter to specify the data provider
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             

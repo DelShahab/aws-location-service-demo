@@ -8,6 +8,7 @@ import javax.validation.constraints.NotBlank;
 
 /**
  * Configuration properties for AWS Location Service.
+ * Contains all the necessary settings to connect to and use AWS Location Service.
  * <p>
  * This class provides a type-safe way to access AWS Location Service
  * configuration properties defined in application.properties or 
@@ -46,4 +47,10 @@ public class AWSLocationProperties {
      */
     @NotBlank
     private String mapName;
+    
+    /**
+     * The data provider for AWS Location Service (e.g., Here, Esri).
+     */
+    @NotBlank
+    private String dataProvider;
 }

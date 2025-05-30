@@ -1,7 +1,6 @@
 package com.example.awslocationservice.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.*;
@@ -23,10 +22,10 @@ import java.util.Map;
 @Slf4j
 public class AWSLocationServiceValidator implements ApplicationListener<ApplicationReadyEvent> {
 
+    private static final String VALIDATION_FAILED = "❌ AWS Location Service API key validation FAILED!";    
     private final AWSLocationProperties awsLocationProperties;
     private final RestTemplate restTemplate;
 
-    @Autowired
     public AWSLocationServiceValidator(AWSLocationProperties awsLocationProperties, RestTemplate restTemplate) {
         this.awsLocationProperties = awsLocationProperties;
         this.restTemplate = restTemplate;
@@ -59,10 +58,11 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Api-Key", awsLocationProperties.getApiKey());
             
-            // Create a minimal test request
+            // Create a minimal test request with required data provider
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("Text", "90210");  // Famous Beverly Hills ZIP code
             requestBody.put("MaxResults", 1);  // Only need one result for testing
+            requestBody.put("DataSource", awsLocationProperties.getDataProvider());  // Include data provider
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             
@@ -79,17 +79,17 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
                 log.info("✅ AWS Location Service API key validation SUCCESSFUL!");
                 log.info("Connection to AWS Location Service working properly.");
             } else {
-                log.error("❌ AWS Location Service API key validation FAILED!");
+                log.error(VALIDATION_FAILED);
                 log.error("Received non-OK response: {}", response.getStatusCode());
                 log.error("Response body: {}", response.getBody());
                 logConfigurationHints();
             }
         } catch (RestClientException e) {
-            log.error("❌ AWS Location Service API key validation FAILED!");
+            log.error(VALIDATION_FAILED);
             log.error("Failed to connect to AWS Location Service: {}", e.getMessage());
             logConfigurationHints();
         } catch (Exception e) {
-            log.error("❌ AWS Location Service API key validation FAILED!");
+            log.error(VALIDATION_FAILED);
             log.error("Unexpected error during validation: {}", e.getMessage(), e);
             logConfigurationHints();
         }
