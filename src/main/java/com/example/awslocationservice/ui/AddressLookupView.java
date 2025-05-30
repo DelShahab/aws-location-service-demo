@@ -1,6 +1,5 @@
 package com.example.awslocationservice.ui;
 
-import com.example.awslocationservice.config.AWSLocationProperties;
 import com.example.awslocationservice.model.AddressResult;
 import com.example.awslocationservice.service.LocationService;
 import com.vaadin.flow.component.Component;
@@ -9,7 +8,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -37,25 +35,20 @@ import org.slf4j.LoggerFactory;
 public class AddressLookupView extends VerticalLayout {
 
     private static final Logger log = LoggerFactory.getLogger(AddressLookupView.class);
-    
-    private final transient AWSLocationProperties awsLocationProperties;
 
     private final transient LocationService locationService;
     
     private final TextField zipCodeField;
     private final Button searchButton;
     private final Div resultsDiv;
-    private final Div mapDiv;
 
     /**
      * Constructor that sets up the UI components and layout.
      *
      * @param locationService The service for validating and looking up address information
-     * @param awsLocationProperties Configuration properties for AWS Location Service
      */
-    public AddressLookupView(LocationService locationService, AWSLocationProperties awsLocationProperties) {
+    public AddressLookupView(LocationService locationService) {
         this.locationService = locationService;
-        this.awsLocationProperties = awsLocationProperties;
 
         // Set up the main layout
         setSizeFull();
@@ -91,14 +84,8 @@ public class AddressLookupView extends VerticalLayout {
         resultsDiv.addClassName("results-container");
         resultsDiv.setWidthFull();
         
-        // Create map div
-        mapDiv = new Div();
-        mapDiv.addClassName("map-container");
-        mapDiv.setWidthFull();
-        mapDiv.setVisible(false);
-        
         // Add components to the main layout
-        add(title, inputLayout, resultsDiv, mapDiv);
+        add(title, inputLayout, resultsDiv);
     }
     
     /**
@@ -122,8 +109,6 @@ public class AddressLookupView extends VerticalLayout {
         try {
             // Clear previous results
             resultsDiv.removeAll();
-            mapDiv.removeAll();
-            mapDiv.setVisible(false);
             
             // Perform lookup
             AddressResult addressResult = locationService.lookupAddressByZipCode(zipCode);
@@ -204,90 +189,9 @@ public class AddressLookupView extends VerticalLayout {
         addressContainer.add(coordinatesPara);
         
         resultsDiv.add(addressContainer);
-        
-        // Add map preview
-        displayMap(addressResult.getLatitude(), addressResult.getLongitude());
     }
     
-    /**
-     * Display a map with the provided coordinates using AWS Location Service
-     */
-    private void displayMap(double latitude, double longitude) {
-        if (latitude == 0 && longitude == 0) {
-            return;
-        }
-        
-        try {
-            H2 mapTitle = new H2("Location Map");
-            
-            // Create an HTML wrapper for AWS Location map
-            String mapHtml = createAwsLocationMapHtml(latitude, longitude);
-            
-            // Create an IFrame to display the map
-            IFrame mapFrame = new IFrame();
-            mapFrame.getElement().setAttribute("srcdoc", mapHtml);
-            mapFrame.setWidth("100%");
-            mapFrame.setHeight("400px");
-            mapFrame.getElement().getStyle().set("border", "none");
-            
-            Paragraph note = new Paragraph("Map powered by AWS Location Service");
-            
-            mapDiv.removeAll();
-            mapDiv.add(mapTitle, mapFrame, note);
-            mapDiv.setVisible(true);
-            
-        } catch (Exception e) {
-            log.error("Failed to load map", e);
-            showNotification("Failed to load map: " + e.getMessage(), true);
-        }
-    }
-    
-    /**
-     * Creates HTML content with AWS Location Service map integration
-     */
-    private String createAwsLocationMapHtml(double latitude, double longitude) {
-        return "<!DOCTYPE html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "    <meta charset=\"utf-8\">\n" +
-                "    <title>AWS Location Service Map</title>\n" +
-                "    <script src=\"https://unpkg.com/amazon-location-client-js@1.x/dist/amazonLocationClient.js\"></script>\n" +
-                "    <script src=\"https://unpkg.com/maplibre-gl@2.x/dist/maplibre-gl.js\"></script>\n" +
-                "    <link href=\"https://unpkg.com/maplibre-gl@2.x/dist/maplibre-gl.css\" rel=\"stylesheet\">\n" +
-                "    <style>\n" +
-                "        body { margin: 0; padding: 0; }\n" +
-                "        #map { position: absolute; top: 0; bottom: 0; width: 100%; }\n" +
-                "    </style>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "    <div id=\"map\"></div>\n" +
-                "    <script>\n" +
-                "        // Initialize the Amazon Location SDK client\n" +
-                "        const client = new amazonLocationClient.LocationClient({\n" +
-                "            credentials: { apiKey: '" + awsLocationProperties.getApiKey() + "' },\n" +
-                "            region: '" + awsLocationProperties.getRegion() + "'\n" +
-                "        });\n" +
-                "\n" +
-                "        // Initialize the map\n" +
-                "        const map = new maplibregl.Map({\n" +
-                "            container: 'map',\n" +
-                "            style: client.getMapStyleDescriptor({\n" +
-                "                mapName: '" + awsLocationProperties.getMapName() + "'\n" +
-                "            }),\n" +
-                "            center: [" + longitude + ", " + latitude + "],\n" +
-                "            zoom: 15\n" +
-                "        });\n" +
-                "\n" +
-                "        // Add a marker at the specified location\n" +
-                "        map.on('load', () => {\n" +
-                "            new maplibregl.Marker()\n" +
-                "                .setLngLat([" + longitude + ", " + latitude + "])\n" +
-                "                .addTo(map);\n" +
-                "        });\n" +
-                "    </script>\n" +
-                "</body>\n" +
-                "</html>";
-    }
+
     
     /**
      * Create an error message component

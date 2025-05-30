@@ -43,12 +43,6 @@ public class AWSLocationProperties {
     private String region;
     
     /**
-     * The name of the Map resource in AWS Location Service.
-     */
-    @NotBlank
-    private String mapName;
-    
-    /**
      * The data provider for AWS Location Service (e.g., Here, Esri).
      */
     @NotBlank
