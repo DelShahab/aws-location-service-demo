@@ -2,7 +2,6 @@ package com.example.awslocationservice.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
@@ -19,7 +18,6 @@ import javax.validation.constraints.NotBlank;
  * @version 1.0
  * @since 2025-05-30
  */
-@Configuration
 @ConfigurationProperties(prefix = "aws.location")
 @Data
 @Validated
