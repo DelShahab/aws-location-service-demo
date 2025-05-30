@@ -1,0 +1,23 @@
+# Example configuration file
+# Copy this file to application.properties and fill in your own values
+
+# Set the active profile
+spring.profiles.active=dev
+
+# Common settings for all environments
+spring.application.name=aws-location-service-demo
+
+# AWS Location Service configuration
+# Replace these values with your own AWS Location Service credentials
+aws.location.api-key=your-api-key-here
+aws.location.place-index-name=ZipLookupIndex
+aws.location.region=us-west-2
+aws.location.map-name=ExampleMap
+
+# Server configuration
+server.port=8080
+
+# Logging configuration
+logging.level.root=INFO
+logging.level.com.example=DEBUG
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n

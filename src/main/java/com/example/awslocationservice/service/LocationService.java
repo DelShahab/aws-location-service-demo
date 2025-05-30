@@ -1,10 +1,10 @@
 package com.example.awslocationservice.service;
 
+import com.example.awslocationservice.config.AWSLocationProperties;
 import com.example.awslocationservice.model.AddressResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -16,6 +16,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Service for interacting with AWS Location Service to validate ZIP codes and retrieve address information.
+ * <p>
+ * This service provides methods to validate US ZIP code formats and to look up addresses using
+ * the AWS Location Service REST API with the HERE provider. It implements API key authentication
+ * and handles all necessary HTTP communication and response parsing.
+ * </p>
+ * 
+ * @author DelShahab
+ * @version 1.0
+ * @since 2025-05-30
+ */
 @Service
 @Slf4j
 public class LocationService {
@@ -28,30 +40,37 @@ public class LocationService {
     private static final String AWS_LOCATION_API_URL_TEMPLATE = 
             "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text";
 
-    private final String apiKey;
-    private final String placeIndexName;
-    private final String region;
+    private final AWSLocationProperties awsLocationProperties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     
+    /**
+     * Constructor that injects the required dependencies.
+     * 
+     * @param awsLocationProperties Typed configuration properties for AWS Location Service
+     * @param restTemplate RestTemplate for making HTTP requests
+     * @param objectMapper ObjectMapper for JSON processing
+     */
     public LocationService(
-            @Value("${aws.location.api-key}") String apiKey,
-            @Value("${aws.location.place-index-name}") String placeIndexName,
-            @Value("${aws.location.region}") String region,
+            AWSLocationProperties awsLocationProperties,
             RestTemplate restTemplate,
             ObjectMapper objectMapper) {
-        this.apiKey = apiKey;
-        this.placeIndexName = placeIndexName;
-        this.region = region;
+        this.awsLocationProperties = awsLocationProperties;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
     }
 
     /**
      * Validates if the provided string is a valid US ZIP code format.
+     * <p>
+     * This method checks if the provided string matches the pattern for US ZIP codes,
+     * which can be either a 5-digit format (e.g., "92021") or a 9-digit format with
+     * hyphen (e.g., "92021-1234").
+     * </p>
      * 
-     * @param zipCode The ZIP code to validate
-     * @return true if the ZIP code is valid, false otherwise
+     * @param zipCode The ZIP code string to validate
+     * @return {@code true} if the ZIP code is valid, {@code false} otherwise
+     * @throws NullPointerException if zipCode is null
      */
     public boolean isValidZipCode(String zipCode) {
         if (zipCode == null || zipCode.trim().isEmpty()) {
@@ -63,9 +82,21 @@ public class LocationService {
 
     /**
      * Looks up address information for a provided ZIP code using AWS Location Service.
+     * <p>
+     * This method performs the following steps:
+     * <ol>
+     *   <li>Validates the ZIP code format</li>
+     *   <li>Constructs an HTTP request to the AWS Location Service API</li>
+     *   <li>Sends the request with proper API key authentication</li>
+     *   <li>Processes the response and extracts address information</li>
+     *   <li>Returns a structured result with address details and coordinates</li>
+     * </ol>
+     * </p>
      * 
-     * @param zipCode The ZIP code to look up
-     * @return AddressResult object containing address information and coordinates
+     * @param zipCode The ZIP code to look up (e.g., "92021")
+     * @return {@link AddressResult} object containing address information and coordinates
+     *         or error details if the operation failed
+     * @see AddressResult
      */
     public AddressResult lookupAddressByZipCode(String zipCode) {
         if (!isValidZipCode(zipCode)) {
@@ -78,13 +109,13 @@ public class LocationService {
 
         try {
             String url = AWS_LOCATION_API_URL_TEMPLATE
-                    .replace("{region}", region)
-                    .replace("{placeIndexName}", placeIndexName);
+                    .replace("{region}", awsLocationProperties.getRegion())
+                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName());
 
             // Set up headers with API Key - AWS Location Service uses X-Api-Key header for API key auth
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", apiKey);
+            headers.set("X-Api-Key", awsLocationProperties.getApiKey());
             
             // Create the request payload
             Map<String, Object> requestBody = new HashMap<>();
@@ -134,10 +165,17 @@ public class LocationService {
     }
 
     /**
-     * Parse the JSON response from AWS Location Service into our AddressResult model.
+     * Parses the JSON response from AWS Location Service into our AddressResult model.
+     * <p>
+     * This method handles the extraction of address components, coordinates, and other
+     * relevant information from the AWS Location Service response format. It processes
+     * the structured JSON data and maps it to our internal {@link AddressResult} model.
+     * </p>
      * 
-     * @param responseBody The JSON response body
-     * @return AddressResult object
+     * @param responseBody The JSON response body as a string
+     * @return {@link AddressResult} object populated with data from the response,
+     *         or with error information if parsing fails
+     * @throws Exception if JSON parsing or data extraction fails
      */
     private AddressResult parseResponse(String responseBody) {
         try {

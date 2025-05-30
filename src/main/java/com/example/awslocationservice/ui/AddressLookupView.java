@@ -1,5 +1,6 @@
 package com.example.awslocationservice.ui;
 
+import com.example.awslocationservice.config.AWSLocationProperties;
 import com.example.awslocationservice.model.AddressResult;
 import com.example.awslocationservice.service.LocationService;
 import com.vaadin.flow.component.Component;
@@ -19,32 +20,42 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * Main UI view for the AWS Location Service Address Lookup application.
+ * <p>
+ * This Vaadin view provides an interface for users to enter ZIP codes,
+ * validate them, and view the corresponding address information with a map.
+ * </p>
+ *
+ * @author DelShahab
+ * @version 1.0
+ * @since 2025-05-30
+ */
 @Route("")
 @PageTitle("AWS Location Service - Address Lookup")
 public class AddressLookupView extends VerticalLayout {
 
     private static final Logger log = LoggerFactory.getLogger(AddressLookupView.class);
     
-    @Value("${aws.location.api-key}")
-    private String apiKey;
-    
-    @Value("${aws.location.map-name}")
-    private String mapName;
-    
-    @Value("${aws.location.region}")
-    private String region;
+    private final transient AWSLocationProperties awsLocationProperties;
 
-    private final LocationService locationService;
+    private final transient LocationService locationService;
     
     private final TextField zipCodeField;
     private final Button searchButton;
     private final Div resultsDiv;
     private final Div mapDiv;
 
-    public AddressLookupView(LocationService locationService) {
+    /**
+     * Constructor that sets up the UI components and layout.
+     *
+     * @param locationService The service for validating and looking up address information
+     * @param awsLocationProperties Configuration properties for AWS Location Service
+     */
+    public AddressLookupView(LocationService locationService, AWSLocationProperties awsLocationProperties) {
         this.locationService = locationService;
+        this.awsLocationProperties = awsLocationProperties;
 
         // Set up the main layout
         setSizeFull();
@@ -253,15 +264,15 @@ public class AddressLookupView extends VerticalLayout {
                 "    <script>\n" +
                 "        // Initialize the Amazon Location SDK client\n" +
                 "        const client = new amazonLocationClient.LocationClient({\n" +
-                "            credentials: { apiKey: '" + apiKey + "' },\n" +
-                "            region: '" + region + "'\n" +
+                "            credentials: { apiKey: '" + awsLocationProperties.getApiKey() + "' },\n" +
+                "            region: '" + awsLocationProperties.getRegion() + "'\n" +
                 "        });\n" +
                 "\n" +
                 "        // Initialize the map\n" +
                 "        const map = new maplibregl.Map({\n" +
                 "            container: 'map',\n" +
                 "            style: client.getMapStyleDescriptor({\n" +
-                "                mapName: '" + mapName + "'\n" +
+                "                mapName: '" + awsLocationProperties.getMapName() + "'\n" +
                 "            }),\n" +
                 "            center: [" + longitude + ", " + latitude + "],\n" +
                 "            zoom: 15\n" +
