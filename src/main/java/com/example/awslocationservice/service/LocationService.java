@@ -124,8 +124,8 @@ public class LocationService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("Text", zipCode);
             requestBody.put("MaxResults", 10);
-            requestBody.put("FilterBBox", new double[0]);
             requestBody.put("Language", "en");
+            // Removed FilterBBox as it's not needed for ZIP code search
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             
