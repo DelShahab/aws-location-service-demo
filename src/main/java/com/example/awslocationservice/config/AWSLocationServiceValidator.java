@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AWSLocationServiceValidator implements ApplicationListener<ApplicationReadyEvent> {
 
-    private static final String VALIDATION_FAILED = "❌ AWS Location Service credentials validation FAILED!";    
+    private static final String VALIDATION_FAILED = "❌ AWS Location Service authentication validation FAILED!";    
     private final AWSLocationProperties awsLocationProperties;
     private final AmazonLocation amazonLocationClient;
 
@@ -46,6 +46,15 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
                 .withIndexName(awsLocationProperties.getPlaceIndexName())
                 .withText("90210") // Famous Beverly Hills ZIP code
                 .withMaxResults(1); // Only need one result for testing
+                
+            // Add API key to the request headers if provided for additional security
+            String apiKey = awsLocationProperties.getApiKey();
+            if (apiKey != null && !apiKey.trim().isEmpty()) {
+                request.putCustomRequestHeader("X-Api-Key", apiKey);
+                log.info("Using hybrid authentication (AWS credentials + API key)");
+            } else {
+                log.info("Using AWS credentials authentication only");
+            }
             
             log.info("Testing connection to AWS Location Service with place index: {}", 
                     awsLocationProperties.getPlaceIndexName());
@@ -54,7 +63,7 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
             SearchPlaceIndexForTextResult result = amazonLocationClient.searchPlaceIndexForText(request);
             
             // If we get here, the request was successful
-            log.info("✅ AWS Location Service credentials validation SUCCESSFUL!");
+            log.info("✅ AWS Location Service authentication validation SUCCESSFUL!");
             log.info("Connection to AWS Location Service working properly.");
             log.info("Found {} results in response.", 
                     result.getResults() != null ? result.getResults().size() : 0);
@@ -75,8 +84,15 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
         log.error("2. Verify that aws.location.place-index-name='{}' exists in your AWS account", 
                 awsLocationProperties.getPlaceIndexName());
         log.error("3. Ensure the AWS credentials have permissions to access the place index");
-        log.error("4. Confirm that aws.location.region='{}' is correct", 
+        
+        // Check if API key is configured
+        String apiKey = awsLocationProperties.getApiKey();
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
+            log.error("4. Verify that your aws.location.api-key is valid");
+        }
+        
+        log.error("5. Confirm that aws.location.region='{}' is correct", 
                 awsLocationProperties.getRegion());
-        log.error("5. The application will continue to run, but address lookup will not work until this is fixed");
+        log.error("6. The application will continue to run, but address lookup will not work until this is fixed");
     }
 }

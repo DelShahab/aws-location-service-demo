@@ -27,7 +27,7 @@ A comprehensive Spring Boot application with a Vaadin UI for validating US ZIP c
 - Lookup address information using AWS Location Service SDK with HERE provider
 - Display formatted address results with complete address components
 - Support for keyboard shortcut (ENTER key) to trigger validation
-- AWS credentials authentication using access key and secret key
+- Hybrid authentication using both AWS credentials and API key for enhanced security
 - Comprehensive error handling and logging
 - Developer-friendly codebase with clean separation of concerns
 
@@ -63,6 +63,7 @@ The application follows a standard Spring Boot architecture with layered compone
 - AWS Account with Amazon Location Service configured
 - Place Index named "ZipLookupIndex" in the us-west-2 region
 - AWS access key and secret key with permissions for AWS Location Service
+- Optional API key for additional request authentication
 
 ## AWS Configuration
 
@@ -114,6 +115,7 @@ aws.credentials.secret-key=your-secret-key-here
 aws.location.place-index-name=ZipLookupIndex
 aws.location.region=us-west-2
 aws.location.data-provider=Here
+aws.location.api-key=your-api-key-here  # Optional for enhanced security
 ```
 
 ### For Production
@@ -129,6 +131,7 @@ aws.credentials.secret-key=${AWS_SECRET_ACCESS_KEY}
 aws.location.place-index-name=${AWS_LOCATION_PLACE_INDEX_NAME:ZipLookupIndex}
 aws.location.region=${AWS_LOCATION_REGION:us-west-2}
 aws.location.data-provider=${AWS_LOCATION_DATA_PROVIDER:Here}
+aws.location.api-key=${AWS_LOCATION_API_KEY}  # Optional for enhanced security
 ```
 
 For production, use environment variables to set sensitive information like AWS credentials.
