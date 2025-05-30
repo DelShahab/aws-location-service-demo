@@ -1,27 +1,25 @@
 package com.example.awslocationservice.service;
 
+import com.amazonaws.services.location.AmazonLocation;
+import com.amazonaws.services.location.model.Place;
+import com.amazonaws.services.location.model.SearchPlaceIndexForTextRequest;
+import com.amazonaws.services.location.model.SearchPlaceIndexForTextResult;
+import com.amazonaws.services.location.model.SearchForTextResult;
 import com.example.awslocationservice.config.AWSLocationProperties;
 import com.example.awslocationservice.model.AddressResult;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * Service for interacting with AWS Location Service to validate ZIP codes and retrieve address information.
  * <p>
  * This service provides methods to validate US ZIP code formats and to look up addresses using
- * the AWS Location Service REST API with the HERE provider. It implements API key authentication
- * and handles all necessary HTTP communication and response parsing.
+ * the AWS Location Service SDK with the HERE provider. It implements API key authentication
+ * and handles all necessary communication and response parsing.
  * </p>
  * 
  * @author DelShahab
@@ -34,46 +32,31 @@ public class LocationService {
 
     private static final String STATUS_ERROR = "ERROR";
     private static final String STATUS_SUCCESS = "SUCCESS";
-    private static final String STATUS_NOT_FOUND = "NOT_FOUND";
 
     private static final Pattern ZIP_CODE_PATTERN = Pattern.compile("^\\d{5}(?:-\\d{4})?$");
-    private static final String AWS_LOCATION_API_URL_TEMPLATE = 
-            "https://places.geo.{region}.amazonaws.com/places/v0/indexes/{placeIndexName}/search/text";
 
     private final AWSLocationProperties awsLocationProperties;
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    
+    private final AmazonLocation amazonLocationClient;
+
     /**
      * Constructor that injects the required dependencies.
      * 
-     * @param awsLocationProperties Typed configuration properties for AWS Location Service
-     * @param restTemplate RestTemplate for making HTTP requests
-     * @param objectMapper ObjectMapper for JSON processing
+     * @param awsLocationProperties Configuration properties for AWS Location Service API
+     * @param amazonLocationClient AmazonLocation client for making requests to AWS Location Service
      */
-    public LocationService(
-            AWSLocationProperties awsLocationProperties,
-            RestTemplate restTemplate,
-            ObjectMapper objectMapper) {
+    public LocationService(AWSLocationProperties awsLocationProperties, AmazonLocation amazonLocationClient) {
         this.awsLocationProperties = awsLocationProperties;
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
+        this.amazonLocationClient = amazonLocationClient;
     }
 
     /**
-     * Validates if the provided string is a valid US ZIP code format.
-     * <p>
-     * This method checks if the provided string matches the pattern for US ZIP codes,
-     * which can be either a 5-digit format (e.g., "92021") or a 9-digit format with
-     * hyphen (e.g., "92021-1234").
-     * </p>
+     * Validates if a string is a valid US ZIP code format.
      * 
      * @param zipCode The ZIP code string to validate
-     * @return {@code true} if the ZIP code is valid, {@code false} otherwise
-     * @throws NullPointerException if zipCode is null
+     * @return true if the ZIP code format is valid, false otherwise
      */
     public boolean isValidZipCode(String zipCode) {
-        if (zipCode == null || zipCode.trim().isEmpty()) {
+        if (zipCode == null || zipCode.isEmpty()) {
             return false;
         }
         
@@ -81,165 +64,150 @@ public class LocationService {
     }
 
     /**
-     * Looks up address information for a provided ZIP code using AWS Location Service.
-     * <p>
-     * This method performs the following steps:
-     * <ol>
-     *   <li>Validates the ZIP code format</li>
-     *   <li>Constructs an HTTP request to the AWS Location Service API</li>
-     *   <li>Sends the request with proper API key authentication</li>
-     *   <li>Processes the response and extracts address information</li>
-     *   <li>Returns a structured result with address details and coordinates</li>
-     * </ol>
-     * </p>
-     * 
-     * @param zipCode The ZIP code to look up (e.g., "92021")
-     * @return {@link AddressResult} object containing address information and coordinates
-     *         or error details if the operation failed
-     * @see AddressResult
+     * Looks up address information for a given ZIP code using AWS Location Service.
+     *
+     * @param zipCode The ZIP code to look up (e.g., "92021" or "92021-1234")
+     * @return AddressResult containing the address details or error information
      */
     public AddressResult lookupAddressByZipCode(String zipCode) {
+        log.info("Looking up address for ZIP code: {}", zipCode);
+        
+        // Validate input
+        if (zipCode == null || zipCode.trim().isEmpty()) {
+            log.error("ZIP code is null or empty");
+            return AddressResult.builder()
+                .status(STATUS_ERROR)
+                .errorMessage("ZIP code cannot be null or empty")
+                .build();
+        }
+        
+        // Validate ZIP code format
         if (!isValidZipCode(zipCode)) {
             log.error("Invalid ZIP code format: {}", zipCode);
             return AddressResult.builder()
-                    .status(STATUS_ERROR)
-                    .errorMessage("Invalid ZIP code format")
-                    .build();
+                .status(STATUS_ERROR)
+                .errorMessage("Invalid ZIP code format")
+                .build();
         }
 
         try {
-            // Construct URL without API key in query string
-            String url = AWS_LOCATION_API_URL_TEMPLATE
-                    .replace("{region}", awsLocationProperties.getRegion())
-                    .replace("{placeIndexName}", awsLocationProperties.getPlaceIndexName());
-
-            log.debug("Using URL: {}", url);
+            // Create request for AWS Location Service SDK
+            SearchPlaceIndexForTextRequest request = new SearchPlaceIndexForTextRequest()
+                .withIndexName(awsLocationProperties.getPlaceIndexName())
+                .withText(zipCode)
+                .withMaxResults(5);
             
-            // Set up headers with API Key using the standard header for AWS Location Service
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", awsLocationProperties.getApiKey());
+            log.debug("Sending request to AWS Location Service: {}", request);
             
-            // Create request payload with required parameters
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("Text", zipCode);
-            requestBody.put("MaxResults", 5);
-            requestBody.put("DataSource", awsLocationProperties.getDataProvider());
+            // Make the API call using AWS SDK
+            SearchPlaceIndexForTextResult result = amazonLocationClient.searchPlaceIndexForText(request);
             
-            // Using DataSource parameter to specify the data provider
+            log.debug("Received successful response from AWS Location Service");
+            return parseAwsLocationServiceResponse(result, zipCode);
             
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-            
-            log.debug("Sending request to AWS Location Service with ZIP: {}", zipCode);
-            log.debug("Request body: {}", objectMapper.writeValueAsString(requestBody));
-            
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    String.class
-            );
-            
-            log.debug("Response status code: {}", response.getStatusCode());
-            log.debug("Response body: {}", response.getBody());
-        
-            if (response.getStatusCode() == HttpStatus.OK) {
-                log.debug("Received successful response from AWS Location Service");
-                return parseResponse(response.getBody());
-            } else {
-                log.error("Error from AWS Location Service: Status code {}", response.getStatusCode());
-                return AddressResult.builder()
-                        .status(STATUS_ERROR)
-                        .errorMessage("Error response from AWS Location Service: " + response.getStatusCode())
-                        .build();
-            }
-        } catch (RestClientException e) {
-            log.error("Error calling AWS Location Service: {}", e.getMessage(), e);
-            return AddressResult.builder()
-                    .status(STATUS_ERROR)
-                    .errorMessage("Error calling AWS Location Service: " + e.getMessage())
-                    .build();
         } catch (Exception e) {
-            log.error("Unexpected error during address lookup", e);
+            log.error("Error calling AWS Location Service", e);
             return AddressResult.builder()
-                    .status(STATUS_ERROR)
-                    .errorMessage("Unexpected error: " + e.getMessage())
-                    .build();
+                .status(STATUS_ERROR)
+                .errorMessage("Error calling AWS Location Service: " + e.getMessage())
+                .build();
         }
     }
 
     /**
-     * Parses the JSON response from AWS Location Service into our AddressResult model.
-     * <p>
-     * This method handles the extraction of address components, coordinates, and other
-     * relevant information from the AWS Location Service response format. It processes
-     * the structured JSON data and maps it to our internal {@link AddressResult} model.
-     * </p>
-     * 
-     * @param responseBody The JSON response body as a string
-     * @return {@link AddressResult} object populated with data from the response,
-     *         or with error information if parsing fails
-     * @throws Exception if JSON parsing or data extraction fails
+     * Parses the AWS Location Service SDK response.
+     *
+     * @param result The response from AWS Location Service SDK
+     * @param zipCode The original ZIP code used in the request
+     * @return AddressResult with parsed address information
      */
-    private AddressResult parseResponse(String responseBody) {
+    private AddressResult parseAwsLocationServiceResponse(SearchPlaceIndexForTextResult result, String zipCode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(responseBody);
-            JsonNode resultsNode = rootNode.path("Results");
-            
-            if (resultsNode.isEmpty()) {
+            if (result.getResults().isEmpty()) {
+                log.warn("No results found for ZIP code: {}", zipCode);
                 return AddressResult.builder()
-                        .status(STATUS_NOT_FOUND)
-                        .errorMessage("No addresses found for the provided ZIP code")
-                        .build();
-            }
-            
-            List<AddressResult.Place> places = new ArrayList<>();
-            double latitude = 0;
-            double longitude = 0;
-            String formattedAddress = "";
-            
-            for (JsonNode resultNode : resultsNode) {
-                JsonNode placeNode = resultNode.path("Place");
-                JsonNode addressNode = placeNode.path("Address");
-                
-                AddressResult.Place place = AddressResult.Place.builder()
-                        .addressNumber(addressNode.path("AddressNumber").asText(""))
-                        .street(addressNode.path("Street").asText(""))
-                        .municipality(addressNode.path("Municipality").asText(""))
-                        .region(addressNode.path("Region").asText(""))
-                        .country(addressNode.path("Country").asText(""))
-                        .postalCode(addressNode.path("PostalCode").asText(""))
-                        .label(placeNode.path("Label").asText(""))
-                        .build();
-                
-                places.add(place);
-                
-                // Get the coordinates from the first result
-                if (latitude == 0 && longitude == 0) {
-                    JsonNode positionNode = placeNode.path("Geometry").path("Point");
-                    if (positionNode.isArray() && positionNode.size() >= 2) {
-                        longitude = positionNode.get(0).asDouble();
-                        latitude = positionNode.get(1).asDouble();
-                    }
-                    
-                    formattedAddress = place.getLabel();
-                }
-            }
-            
-            return AddressResult.builder()
                     .status(STATUS_SUCCESS)
-                    .places(places)
-                    .formattedAddress(formattedAddress)
-                    .latitude(latitude)
-                    .longitude(longitude)
+                    .zipCode(zipCode)
                     .build();
+            }
             
+            // Process the first result (most relevant)
+            SearchForTextResult firstResult = result.getResults().get(0);
+            Place place = firstResult.getPlace();
+            
+            // Extract address components
+            String label = place.getLabel() != null ? place.getLabel() : "";
+            String addressNumber = place.getAddressNumber() != null ? place.getAddressNumber() : "";
+            String street = place.getStreet() != null ? place.getStreet() : "";
+            String municipality = place.getMunicipality() != null ? place.getMunicipality() : "";
+            String region = place.getRegion() != null ? place.getRegion() : "";
+            String subRegion = place.getSubRegion() != null ? place.getSubRegion() : "";
+            String postalCode = place.getPostalCode() != null ? place.getPostalCode() : zipCode; // Default to input if not present
+            String country = place.getCountry() != null ? place.getCountry() : "";
+            
+            // Get coordinates if available
+            double latitude = 0.0;
+            double longitude = 0.0;
+            
+            if (result.getSummary() != null && result.getSummary().getResultBBox() != null && result.getSummary().getResultBBox().size() >= 4) {
+                // Calculate center point from bounding box
+                double west = result.getSummary().getResultBBox().get(0);
+                double south = result.getSummary().getResultBBox().get(1);
+                double east = result.getSummary().getResultBBox().get(2);
+                double north = result.getSummary().getResultBBox().get(3);
+                
+                longitude = (west + east) / 2;
+                latitude = (south + north) / 2;
+            }
+            
+            // Build list of places
+            List<AddressResult.Place> places = new ArrayList<>();
+            
+            AddressResult.Place primaryPlace = AddressResult.Place.builder()
+                .addressNumber(addressNumber)
+                .street(street)
+                .municipality(municipality)
+                .region(region)
+                .subRegion(subRegion)
+                .postalCode(postalCode)
+                .country(country)
+                .build();
+            
+            places.add(primaryPlace);
+            
+            // Add additional results if available
+            for (int i = 1; i < Math.min(result.getResults().size(), 5); i++) {
+                SearchForTextResult additionalResult = result.getResults().get(i);
+                Place additionalPlace = additionalResult.getPlace();
+                
+                AddressResult.Place place2 = AddressResult.Place.builder()
+                    .addressNumber(additionalPlace.getAddressNumber() != null ? additionalPlace.getAddressNumber() : "")
+                    .street(additionalPlace.getStreet() != null ? additionalPlace.getStreet() : "")
+                    .municipality(additionalPlace.getMunicipality() != null ? additionalPlace.getMunicipality() : "")
+                    .region(additionalPlace.getRegion() != null ? additionalPlace.getRegion() : "")
+                    .subRegion(additionalPlace.getSubRegion() != null ? additionalPlace.getSubRegion() : "")
+                    .postalCode(additionalPlace.getPostalCode() != null ? additionalPlace.getPostalCode() : "")
+                    .country(additionalPlace.getCountry() != null ? additionalPlace.getCountry() : "")
+                    .build();
+                
+                places.add(place2);
+            }
+            
+            // Build and return the result
+            return AddressResult.builder()
+                .status(STATUS_SUCCESS)
+                .zipCode(zipCode)
+                .formattedAddress(label)
+                .latitude(latitude)
+                .longitude(longitude)
+                .places(places)
+                .build();
         } catch (Exception e) {
             log.error("Error parsing AWS Location Service response", e);
             return AddressResult.builder()
-                    .status(STATUS_ERROR)
-                    .errorMessage("Error parsing response: " + e.getMessage())
-                    .build();
+                .status(STATUS_ERROR)
+                .errorMessage("Error parsing response: " + e.getMessage())
+                .build();
         }
     }
 }

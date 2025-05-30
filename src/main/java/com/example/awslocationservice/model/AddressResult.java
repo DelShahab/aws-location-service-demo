@@ -28,6 +28,9 @@ public class AddressResult {
     /** The full formatted address as a single string */
     private String formattedAddress;
     
+    /** The ZIP code used for the lookup */
+    private String zipCode;
+    
     /** List of place details returned from the lookup */
     private List<Place> places;
     
@@ -69,6 +72,9 @@ public class AddressResult {
         
         /** State or region component of the address */
         private String region;
+        
+        /** County or sub-region component of the address */
+        private String subRegion;
         
         /** Country component of the address */
         private String country;

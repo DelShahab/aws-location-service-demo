@@ -23,12 +23,6 @@ import javax.validation.constraints.NotBlank;
 @Data
 @Validated
 public class AWSLocationProperties {
-
-    /**
-     * The API key for authenticating with AWS Location Service.
-     */
-    @NotBlank
-    private String apiKey;
     
     /**
      * The name of the Place Index resource in AWS Location Service.

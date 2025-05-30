@@ -1,0 +1,47 @@
+{
+  "groups": [
+    {
+      "name": "aws.credentials",
+      "type": "com.example.awslocationservice.config.AWSCredentialsProperties",
+      "sourceType": "com.example.awslocationservice.config.AWSCredentialsProperties"
+    },
+    {
+      "name": "aws.location",
+      "type": "com.example.awslocationservice.config.AWSLocationProperties",
+      "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "aws.credentials.access-key",
+      "type": "java.lang.String",
+      "description": "AWS access key ID for authentication.",
+      "sourceType": "com.example.awslocationservice.config.AWSCredentialsProperties"
+    },
+    {
+      "name": "aws.credentials.secret-key",
+      "type": "java.lang.String",
+      "description": "AWS secret access key for authentication.",
+      "sourceType": "com.example.awslocationservice.config.AWSCredentialsProperties"
+    },
+    {
+      "name": "aws.location.place-index-name",
+      "type": "java.lang.String",
+      "description": "The name of the AWS Location Service place index to use for address lookups.",
+      "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
+    },
+    {
+      "name": "aws.location.region",
+      "type": "java.lang.String",
+      "description": "AWS region where the Location Service is deployed.",
+      "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
+    },
+    {
+      "name": "aws.location.data-provider",
+      "type": "java.lang.String",
+      "description": "The data provider for the AWS Location Service (e.g., 'Here', 'Esri').",
+      "sourceType": "com.example.awslocationservice.config.AWSLocationProperties"
+    }
+  ],
+  "hints": []
+}

@@ -1,34 +1,31 @@
 package com.example.awslocationservice.config;
 
+import com.amazonaws.services.location.AmazonLocation;
+import com.amazonaws.services.location.model.SearchPlaceIndexForTextRequest;
+import com.amazonaws.services.location.model.SearchPlaceIndexForTextResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Validates AWS Location Service configuration during application startup.
  * <p>
  * This component executes a test call to AWS Location Service when the application
- * starts to verify that the API key and configuration are working correctly.
+ * starts to verify that the AWS credentials and configuration are working correctly.
  * </p>
  */
 @Component
 @Slf4j
 public class AWSLocationServiceValidator implements ApplicationListener<ApplicationReadyEvent> {
 
-    private static final String VALIDATION_FAILED = "❌ AWS Location Service API key validation FAILED!";    
+    private static final String VALIDATION_FAILED = "❌ AWS Location Service credentials validation FAILED!";    
     private final AWSLocationProperties awsLocationProperties;
-    private final RestTemplate restTemplate;
+    private final AmazonLocation amazonLocationClient;
 
-    public AWSLocationServiceValidator(AWSLocationProperties awsLocationProperties, RestTemplate restTemplate) {
+    public AWSLocationServiceValidator(AWSLocationProperties awsLocationProperties, AmazonLocation amazonLocationClient) {
         this.awsLocationProperties = awsLocationProperties;
-        this.restTemplate = restTemplate;
+        this.amazonLocationClient = amazonLocationClient;
     }
 
     @Override
@@ -44,53 +41,27 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
         log.info("Validating AWS Location Service configuration...");
         
         try {
-            // Create test URL
-            String url = String.format(
-                    "https://places.geo.%s.amazonaws.com/places/v0/indexes/%s/search/text",
-                    awsLocationProperties.getRegion(),
-                    awsLocationProperties.getPlaceIndexName()
-            );
+            // Create a test request using the AWS SDK
+            SearchPlaceIndexForTextRequest request = new SearchPlaceIndexForTextRequest()
+                .withIndexName(awsLocationProperties.getPlaceIndexName())
+                .withText("90210") // Famous Beverly Hills ZIP code
+                .withMaxResults(1); // Only need one result for testing
             
-            log.info("Testing connection to: {}", url);
+            log.info("Testing connection to AWS Location Service with place index: {}", 
+                    awsLocationProperties.getPlaceIndexName());
             
-            // Set up headers with API Key
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", awsLocationProperties.getApiKey());
+            // Execute the request using the AWS SDK client
+            SearchPlaceIndexForTextResult result = amazonLocationClient.searchPlaceIndexForText(request);
             
-            // Create a minimal test request with required data provider
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("Text", "90210");  // Famous Beverly Hills ZIP code
-            requestBody.put("MaxResults", 1);  // Only need one result for testing
-            requestBody.put("DataSource", awsLocationProperties.getDataProvider());  // Include data provider
+            // If we get here, the request was successful
+            log.info("✅ AWS Location Service credentials validation SUCCESSFUL!");
+            log.info("Connection to AWS Location Service working properly.");
+            log.info("Found {} results in response.", 
+                    result.getResults() != null ? result.getResults().size() : 0);
             
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-            
-            // Execute the request
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    String.class
-            );
-            
-            // Check if request was successful
-            if (response.getStatusCode() == HttpStatus.OK) {
-                log.info("✅ AWS Location Service API key validation SUCCESSFUL!");
-                log.info("Connection to AWS Location Service working properly.");
-            } else {
-                log.error(VALIDATION_FAILED);
-                log.error("Received non-OK response: {}", response.getStatusCode());
-                log.error("Response body: {}", response.getBody());
-                logConfigurationHints();
-            }
-        } catch (RestClientException e) {
-            log.error(VALIDATION_FAILED);
-            log.error("Failed to connect to AWS Location Service: {}", e.getMessage());
-            logConfigurationHints();
         } catch (Exception e) {
             log.error(VALIDATION_FAILED);
-            log.error("Unexpected error during validation: {}", e.getMessage(), e);
+            log.error("Failed to connect to AWS Location Service: {}", e.getMessage());
             logConfigurationHints();
         }
     }
@@ -100,10 +71,10 @@ public class AWSLocationServiceValidator implements ApplicationListener<Applicat
      */
     private void logConfigurationHints() {
         log.error("=== CONFIGURATION HINTS ===");
-        log.error("1. Check that aws.location.api-key in application.properties is correctly set");
+        log.error("1. Check that aws.credentials.access-key and aws.credentials.secret-key in application.properties are correctly set");
         log.error("2. Verify that aws.location.place-index-name='{}' exists in your AWS account", 
                 awsLocationProperties.getPlaceIndexName());
-        log.error("3. Ensure the API key has permissions to access the place index");
+        log.error("3. Ensure the AWS credentials have permissions to access the place index");
         log.error("4. Confirm that aws.location.region='{}' is correct", 
                 awsLocationProperties.getRegion());
         log.error("5. The application will continue to run, but address lookup will not work until this is fixed");
